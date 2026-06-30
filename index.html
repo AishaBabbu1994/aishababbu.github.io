@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tabla Pinyin con Tonos Reales</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #0f1b34;
+      --text: #e8eefc;
+      --accent: #4cc9f0;
+      --accent2: #f72585;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: linear-gradient(180deg, #071022, #060b16);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .card {
+      background: rgba(15, 27, 52, 0.75);
+      border: 1px solid rgba(76, 201, 240, 0.28);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .search-input {
+      flex: 1;
+      padding: 12px 16px;
+      background: rgba(12, 23, 48, 0.65);
+      border: 1px solid rgba(76, 201, 240, 0.25);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+    }
+    .syllable-display { display: none; margin-bottom: 20px; }
+    .syllable-main { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+
+    .tone-flowers {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .flower {
+      background: rgba(7, 16, 34, 0.55);
+      border: 2px solid rgba(76, 201, 240, 0.25);
+      border-radius: 16px;
+      padding: 18px 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .flower:hover {
+      border-color: rgba(76, 201, 240, 0.6);
+      background: rgba(76, 201, 240, 0.1);
+      transform: translateY(-3px);
+    }
+    .flower:active { transform: translateY(0); }
+    .flower.highlight {
+      border-color: var(--accent2);
+      background: rgba(247, 37, 133, 0.15);
+      transform: scale(1.05);
+    }
+    .flower-emoji {
+      font-size: 48px;
+      line-height: 1;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    }
+    .flower-tone {
+      font-size: 14px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .flower-char {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    /* Generador de órdenes */
+    .order-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(76, 201, 240, 0.2);
+    }
+    .order-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--accent);
+    }
+    .order-display {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 16px;
+      min-height: 60px;
+      align-items: center;
+    }
+    .order-slot {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      border: 2px dashed rgba(247, 37, 133, 0.4);
+      background: rgba(7, 16, 34, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent2);
+    }
+    .order-slot.filled {
+      border-style: solid;
+      border-color: var(--accent2);
+      background: rgba(247, 37, 133, 0.15);
+    }
+    .order-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #061022;
+    }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .btn-secondary {
+      background: rgba(76, 201, 240, 0.15);
+      border: 1px solid rgba(76, 201, 240, 0.35);
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: rgba(76, 201, 240, 0.25); }
+
+    .info {
+      background: rgba(247, 37, 133, 0.15);
+      border: 1px solid rgba(247, 37, 133, 0.35);
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 20px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .message {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 14px;
+      min-height: 20px;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 style="margin-bottom: 8px;">Pinyin con Tonos Reales </h1>
+    <p style="color: #a9b7e6; margin-bottom: 20px;">Busca una sílaba y escucha sus 4 tonos</p>
+    
+    <div class="search-box">
+      <input type="text" class="search-input" id="searchInput" placeholder="Escribe: ba, ma, zhang...">
+    </div>
+    
+    <div class="syllable-display" id="syllableDisplay">
+      <div class="syllable-main" id="syllableMain">ba</div>
+      <div style="color: #a9b7e6; margin-bottom: 16px;" id="syllableBreakdown">Sílaba: ba</div>
+      
+      <div class="tone-flowers" id="toneFlowers"></div>
+
+      <!-- Generador de órdenes -->
+      <div class="order-section">
+        <div class="order-title">🎲 Generador de órdenes aleatorias</div>
+        <div class="order-display" id="orderDisplay">
+          <div class="order-slot">?</div>
+          <div class="order-slot">?</div>
+          <div class="order-slot">?</div>
+          <div class="order-slot">?</div>
+        </div>
+        <div class="order-buttons">
+          <button class="btn btn-primary" id="generateOrder">Generar orden</button>
+          <button class="btn btn-secondary" id="playOrder">▶ Reproducir</button>
+          <button class="btn btn-secondary" id="resetOrder">Reiniciar</button>
+        </div>
+        <div class="message" id="message"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="info">
+    <strong>Nota:</strong> Guarda los 4 archivos en la misma carpeta que el HTML:<br>
+    <code>ba_1.mp3</code> · <code>ba_2.mp3</code> · <code>ba_3.mp3</code> · <code>ba_4.mp3</code>
+  </div>
+
+  <script>
+    const FLOWER = '🌸';
+    const toneNames = ['1er tono (plano)', '2do tono (sube)', '3er tono (baja-sube)', '4to tono (baja)'];
+
+    const audioFiles = {
+      'ba': ['ba_1.mp3', 'ba_2.mp3', 'ba_3.mp3', 'ba_4.mp3'],
+      'ma': ['ma_1.mp3', 'ma_2.mp3', 'ma_3.mp3', 'ma_4.mp3'],
+      'zhang': ['zhang_1.mp3', 'zhang_2.mp3', 'zhang_3.mp3', 'zhang_4.mp3']
+    };
+
+    let currentOrder = [];
+    let currentSyllable = '';
+
+    function applyTone(syllable, toneNum) {
+      const marks = {
+        'a': ['ā','á','ǎ','à'],
+        'o': ['ō','ó','ǒ','ò'],
+        'e': ['ē','é','ě','è'],
+        'i': ['ī','í','ǐ','ì'],
+        'u': ['ū','ú','ǔ','ù'],
+        'ü': ['','ǘ','ǚ','ǜ']
+      };
+      const idx = toneNum - 1;
+      for (let vowel of ['a','o','e','i','u','ü']) {
+        if (syllable.includes(vowel)) {
+          return syllable.replace(vowel, marks[vowel][idx]);
+        }
+      }
+      return syllable;
+    }
+
+    function createFlowers(syllable) {
+      const container = document.getElementById('toneFlowers');
+      container.innerHTML = '';
+      const files = audioFiles[syllable];
+      
+      for (let tone = 1; tone <= 4; tone++) {
+        const flower = document.createElement('div');
+        flower.className = 'flower';
+        flower.dataset.tone = tone;
+        flower.innerHTML = `
+          <div class="flower-emoji">${FLOWER}</div>
+          <div class="flower-char">${applyTone(syllable, tone)}</div>
+          <div class="flower-tone">${toneNames[tone-1]}</div>
+        `;
+        
+        flower.addEventListener('click', () => {
+          if (!files) {
+            alert(`No hay audio para "${syllable}".`);
+            return;
+          }
+          playAudio(files[tone-1]);
+          highlightFlower(tone);
+        });
+        
+        container.appendChild(flower);
+      }
+    }
+
+    function highlightFlower(tone) {
+      document.querySelectorAll('.flower').forEach(f => f.classList.remove('highlight'));
+      const flower = document.querySelector(`.flower[data-tone="${tone}"]`);
+      if (flower) {
+        flower.classList.add('highlight');
+        setTimeout(() => flower.classList.remove('highlight'), 500);
+      }
+    }
+
+    function playAudio(src) {
+      const audio = new Audio(src);
+      audio.play().catch(() => {});
+      return audio;
+    }
+
+    function shuffleArray(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function generateOrder() {
+      currentOrder = shuffleArray([1, 2, 3, 4]);
+      renderOrder();
+      document.getElementById('message').textContent = `Orden generado: ${currentOrder.join(' - ')}`;
+    }
+
+    function renderOrder() {
+      const slots = document.querySelectorAll('.order-slot');
+      slots.forEach((slot, i) => {
+        if (currentOrder[i]) {
+          slot.textContent = currentOrder[i];
+          slot.classList.add('filled');
+        } else {
+          slot.textContent = '?';
+          slot.classList.remove('filled');
+        }
+      });
+    }
+
+    async function playOrder() {
+      if (currentOrder.length === 0) {
+        document.getElementById('message').textContent = '⚠️ Primero genera un orden';
+        return;
+      }
+      const files = audioFiles[currentSyllable];
+      if (!files) {
+        document.getElementById('message').textContent = '⚠️ No hay audio para esta sílaba';
+        return;
+      }
+      document.getElementById('message').textContent = '🔊 Reproduciendo...';
+      
+      for (let i = 0; i < currentOrder.length; i++) {
+        const tone = currentOrder[i];
+        highlightFlower(tone);
+        await playAudio(files[tone-1]);
+        await new Promise(r => setTimeout(r, 800));
+      }
+      document.getElementById('message').textContent = `✅ Orden: ${currentOrder.join(' - ')}`;
+    }
+
+    function resetOrder() {
+      currentOrder = [];
+      renderOrder();
+      document.getElementById('message').textContent = '';
+    }
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      const syllable = e.target.value.toLowerCase().trim();
+      if (syllable.length >= 2) {
+        currentSyllable = syllable;
+        document.getElementById('syllableDisplay').style.display = 'block';
+        document.getElementById('syllableMain').textContent = syllable;
+        document.getElementById('syllableBreakdown').textContent = `Sílaba: ${syllable}`;
+        createFlowers(syllable);
+        resetOrder();
+      }
+    });
+
+    document.getElementById('generateOrder').addEventListener('click', generateOrder);
+    document.getElementById('playOrder').addEventListener('click', playOrder);
+    document.getElementById('resetOrder').addEventListener('click', resetOrder);
+  </script>
+</body>
+</html>
